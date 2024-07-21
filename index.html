@@ -173,6 +173,26 @@
             #viewer {
                 margin: 10px;
             }
+            #fileInput {
+    display: none;
+}
+
+@supports (-webkit-touch-callout: none) {
+    /* CSS specific to iOS devices */
+    #fileInput {
+        display: block;
+        width: 0.1px;
+        height: 0.1px;
+        opacity: 0;
+        overflow: hidden;
+        position: absolute;
+        z-index: -1;
+    }
+    
+    #btn-open {
+        display: none;
+    }
+}
         }
         </style>
 </head>
@@ -182,6 +202,7 @@
     <div id="toolbar">
         <input type="file" id="fileInput" accept=".pdf,application/pdf" style="display: none;">
         <button class="button" id="btn-open">Open New</button>
+        <input type="file" id="fileInput" accept=".pdf,application/pdf">
         <button class="button" id="btn-clear" style="display: none;">Clear File</button>
         <button class="button" id="btn-pdf2png">PDF to PNG</button>
         <button class="button" id="btn-split">Split PDF</button>
@@ -267,39 +288,24 @@
         }
     }
 
-    document.getElementById('btn-open').addEventListener('click', () => {
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-        // For mobile devices
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pdf,application/pdf';
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    loadPDF(e.target.result, file.name);
-                };
-                reader.readAsArrayBuffer(file);
-            }
-        };
-        input.click();
-    } else {
-        // For desktop devices
-        document.getElementById('fileInput').click();
-    }
+    document.getElementById('btn-open').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('fileInput').click();
 });
 
-    document.getElementById('fileInput').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                loadPDF(e.target.result, file.name);
-            };
-            reader.readAsArrayBuffer(file);
-        }
-    });
+document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file && file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            loadPDF(e.target.result, file.name);
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        alert('Please select a PDF file.');
+        e.target.value = ''; // Reset the file input
+    }
+});
 
     document.getElementById('btn-clear').addEventListener('click', () => {
         currentPDFData = null;

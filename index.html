@@ -5,9 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF Minimal</title>
     <style>
-        body {
+      body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
+            background-color: #16383D;
+            color: white;
             margin: 0;
             padding: 0;
         }
@@ -17,61 +18,163 @@
             height: 100vh;
         }
         header {
-            background-color: #333;
+            background-color: #16383D;
             color: white;
-            padding: 10px 20px;
-            font-size: 24px;
+            padding: 20px;
+            font-size: 28px;
+            text-align: center;
         }
         #toolbar {
-            background-color: #e0e0e0;
-            padding: 10px;
+            background-color: #16383D;
+            padding: 15px;
             display: flex;
-            justify-content: flex-start;
-            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
         }
         .button {
-            padding: 8px 12px;
+            padding: 12px 20px;
             border: none;
-            background-color: #4CAF50;
-            color: white;
+            background-color: white;
+            color: #16383D;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .button:hover {
+            background-color: #e0e0e0;
+        }
+        .button:active {
+            transform: scale(0.98);
         }
         #viewer {
             flex: 1;
-            background-color: #ffffff;
+            background-color: white;
             overflow: auto;
+            
         }
         .dialog {
             display: none;
-            position: absolute;
+            position: fixed;
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
+            background-color: #16383D;
+            color: white;
+            border: none;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-width: 90%;
+            width: 400px;
+        }
+        .dialog h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .dialog label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        .dialog input[type="radio"] {
+            margin-right: 10px;
+        }
+        .dialog input[type="text"],
+        .dialog input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 5px;
+        }
+        .dialog button {
             background-color: white;
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: #16383D;
+            border: none;
+            padding: 10px 20px;
+            margin-right: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .dialog button:hover {
+            background-color: #e0e0e0;
         }
         #merge-files-list {
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
         .merge-file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            background-color: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 4px;
         }
         .remove-file {
-            background-color: #f44336;
+            #merge-dialog .dialog-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #merge-dialog button {
+            width: 100%;
+            margin-right: 0;
+        }
+        #merge-dialog #add-merge-file-btn {
+            order: -1;
+        }
+        #merge-dialog #merge-btn {
+            order: 1;
+        }
+        #merge-dialog button[onclick="closeDialog('merge-dialog')"] {
+            order: 2;
+        }
+            background-color: #ff4d4d;
             color: white;
             border: none;
-            padding: 2px 6px;
+            padding: 4px 8px;
             cursor: pointer;
-            border-radius: 2px;
+            border-radius: 4px;
         }
-    </style>
+        input[type="file"], input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid white;
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 4px;
+        }
+        input[type="radio"] {
+            margin-right: 5px;
+        }
+        label {
+            margin-right: 15px;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                font-size: 24px;
+                padding: 15px;
+            }
+            .button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            #viewer {
+                margin: 10px;
+            }
+        }
+        </style>
 </head>
 <body>
 <div id="container">
@@ -299,15 +402,26 @@
     });
 
     document.getElementById('btn-merge').addEventListener('click', () => {
-        if (!currentPDF) {
-            alert("Please load a PDF file first.");
-            return;
-        }
-        document.getElementById('merge-dialog').style.display = 'block';
-        mergeFiles.length = 0;
-        mergeFiles.push(new File([currentPDFData], currentFileName, { type: 'application/pdf' }));
-        updateMergeFilesList();
-    });
+    if (!currentPDF) {
+        alert("Please load a PDF file first.");
+        return;
+    }
+    const mergeDialog = document.getElementById('merge-dialog');
+    mergeDialog.style.display = 'block';
+    
+    // Wrap buttons in a div if not already done
+    if (!mergeDialog.querySelector('.dialog-buttons')) {
+        const buttons = mergeDialog.querySelectorAll('button');
+        const buttonWrapper = document.createElement('div');
+        buttonWrapper.className = 'dialog-buttons';
+        buttons.forEach(button => buttonWrapper.appendChild(button));
+        mergeDialog.appendChild(buttonWrapper);
+    }
+    
+    mergeFiles.length = 0;
+    mergeFiles.push(new File([currentPDFData], currentFileName, { type: 'application/pdf' }));
+    updateMergeFilesList();
+});
 
     document.getElementById('add-merge-file-btn').addEventListener('click', () => {
         document.getElementById('merge-file-input').click();
